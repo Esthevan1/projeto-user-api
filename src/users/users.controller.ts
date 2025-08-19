@@ -37,7 +37,7 @@ export async function updateUser(req: Request, res: Response) {
     res.status(404).json({ message: "User not found" });
   }
 }
-
+//testando
 export async function deleteUser(req: Request, res: Response) {
   const { id } = req.params;
   try {

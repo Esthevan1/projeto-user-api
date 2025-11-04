@@ -1,16 +1,11 @@
-import type { Config } from "jest";
-const config: Config = {
+/** @type {import('jest').Config} */
+export default {
   preset: "ts-jest",
   testEnvironment: "node",
-  roots: ["<rootDir>/tests"],
+  roots: ["<rootDir>/src", "<rootDir>/tests"],
   moduleFileExtensions: ["ts", "js", "json"],
-};
-
-module.exports = {
-  preset: "ts-jest",
-  testEnvironment: "node",
-  setupFiles: ["dotenv/config"],
+  setupFiles: ["<rootDir>/tests/setup-env.ts"],
   testTimeout: 20000,
+  testMatch: ["**/*.test.ts"],
+  modulePathIgnorePatterns: ["<rootDir>/dist/"], // 🚫 Não rodar testes compilados
 };
-
-export default config;

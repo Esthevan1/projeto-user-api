@@ -7,7 +7,7 @@ const databaseUrl =
     : process.env.DATABASE_URL;
 
 if (!databaseUrl || !databaseUrl.startsWith("postgres")) {
-  console.error("❌ DATABASE_URL inválida no ambiente:", environment);
+  console.error("DATABASE_URL inválida no ambiente:", environment);
   console.error("Valor recebido:", databaseUrl);
   throw new Error("DATABASE_URL inválida para o Prisma");
 }

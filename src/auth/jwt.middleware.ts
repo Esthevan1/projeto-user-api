@@ -6,11 +6,13 @@ const SECRET = "SUPER_SECRET_LOCAL_KEY";
 declare global {
   namespace Express {
     interface Request {
+      // só adicionamos user; auth já é declarado pelo express-oauth2-jwt-bearer
       user?: any;
     }
   }
 }
 
+// usado nos testes (mock local) – em produção você usa o requireAuth0
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const auth = req.headers.authorization;
 
@@ -29,16 +31,55 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export function requireRole(role: "admin" | "user") {
+export function requireRole(requiredRole: "admin" | "user") {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user || !req.user.role) {
-      return res.status(403).json({ message: "Missing role" });
+    const anyReq = req as any;
+
+    // em produção vem de express-oauth2-jwt-bearer (req.auth)
+    // em testes vem de requireAuth (req.user)
+    const auth = anyReq.auth || anyReq.user;
+
+    if (!auth) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
-    if (req.user.role !== role && req.user.role !== "admin") {
-      return res.status(403).json({ message: "Forbidden" });
+    // Se veio do express-oauth2-jwt-bearer, os claims estão em auth.payload
+    const claims = auth.payload ?? auth;
+
+    const tokenRoles: string[] =
+      claims.roles ||
+      claims["https://projeto-user-api/roles"] ||
+      [];
+
+    const permissions: string[] = claims.permissions || [];
+
+    const scopeStr: string | undefined = claims.scope;
+    const scopes: string[] = scopeStr ? scopeStr.split(" ") : [];
+
+    const isAdmin =
+      tokenRoles.includes("admin") ||
+      permissions.includes("write:users") ||
+      scopes.includes("write:users");
+
+    const isUser =
+      tokenRoles.includes("user") ||
+      permissions.includes("read:users") ||
+      scopes.includes("read:users");
+
+    if (requiredRole === "admin") {
+      if (!isAdmin) {
+        return res.status(403).json({ message: "Forbidden: admin only" });
+      }
+      return next();
     }
 
-    next();
+    if (requiredRole === "user") {
+      if (!(isUser || isAdmin)) {
+        return res.status(403).json({ message: "Forbidden: user only" });
+      }
+      return next();
+    }
+
+    return next();
   };
 }

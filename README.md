@@ -1,107 +1,200 @@
-#  User API (Express + Prisma + Postgres)
+# Projeto User API (Express + Prisma + Postgres)
+## Tecnologias utilizadas
+> Principais stacks e dependências empregadas no projeto.
 
-##  Requisitos
-- **Docker** e **Docker Compose**
-- (Opcional p/ rodar localmente) **Node 20 + npm**
-- (Para deploy cloud) **AWS CLI + Terraform + credenciais configuradas**
+- **Node.js + Express**
+- **Prisma ORM**
+- **PostgreSQL**
+- **Auth0** (Client Credentials + RBAC)
+- **Docker e Docker Compose**
+- **Jest + Supertest**
+- **Swagger (OpenAPI 3.0)**
+- **Terraform + AWS ECS / ECR / RDS**
 
 ---
 
-## Rodando localmente com Docker
+## Estrutura do projeto
+> Organização dos diretórios principais do backend e da infraestrutura.
+
+```
+
+src/
+├── auth/                  → Middlewares JWT e integração com Auth0
+├── users/                 → Rotas e controladores de usuários
+├── prisma/                → Configuração do ORM Prisma
+├── swagger.ts             → Configuração da documentação OpenAPI
+├── server.ts              → Inicialização da API
+├── app.ts                 → Configuração principal do Express
+└── tests/                 → Testes unitários e E2E
+infra/
+├── alb.tf                 → Load balancer AWS
+├── ecs.tf                 → Configuração ECS Fargate
+├── rds.tf                 → Banco de dados gerenciado
+└── variables.tf           → Variáveis de ambiente Terraform
+
+````
+
+---
+
+## Execução e Testes (Etapa 2)
+
+### 🔧 Ambiente de execução
+> O projeto pode ser rodado tanto localmente quanto via Docker, com variáveis de ambiente definidas em `.env`.
+
+**Rodando localmente:**
 ```bash
 cp .env.example .env
-# Portas padrão:
-# - API: host 3001 -> container 3000
-# - DB:  host 5434 -> container 5432
-docker compose up -d --build
-curl http://localhost:3001/health
-```
-
----
-
-##  Endpoints principais
-| Método | Rota | Corpo | Descrição |
-|---------|------|--------|------------|
-| GET | `/health` | - | Verifica se a API está online |
-| GET | `/users` | - | Lista todos os usuários |
-| GET | `/users/:id` | - | Retorna um usuário específico |
-| POST | `/users` | `{ "name": string, "email": string }` | Cria um usuário |
-| PUT | `/users/:id` | `{ "name"?: string, "email"?: string }` | Atualiza dados |
-| DELETE | `/users/:id` | - | Remove um usuário |
-
----
-
-##  Desenvolvimento local (sem Docker)
-```bash
-npm ci
-npx prisma generate
-npm run prisma:push
+npm install
 npm run dev
+````
+
+**Rodando via Docker:**
+
+```bash
+docker compose up -d --build
 ```
+
+A API ficará disponível em:
+
+* API: [http://localhost:3000](http://localhost:3000)
+* Swagger: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
 
 ---
 
-##  Testes
+### Testes
+
+> Os testes utilizam **Jest** e **Supertest**, com ambiente isolado via `TEST_DATABASE_URL`.
+
 ```bash
-# usa TEST_DATABASE_URL (veja .env.example)
 npm test
 ```
 
+> Os testes cobrem:
+>
+> * Autenticação e RBAC (roles admin/user)
+> * CRUD completo de `/users`
+> * Integração com banco de dados Prisma
+
 ---
 
-##  Deploy em AWS ECS (Infra as Code com Terraform)
+### Endpoints principais
+
+> Rotas REST implementadas com seus respectivos métodos e descrições.
+
+| Método | Rota         | Corpo                                   | Descrição                       |
+| ------ | ------------ | --------------------------------------- | ------------------------------- |
+| GET    | `/health`    | -                                       | Verifica se a API está online   |
+| GET    | `/users`     | -                                       | Lista todos os usuários (admin) |
+| GET    | `/users/:id` | -                                       | Retorna um usuário específico   |
+| POST   | `/users`     | `{ "name": string, "email": string }`   | Cria um usuário (admin)         |
+| PUT    | `/users/:id` | `{ "name"?: string, "email"?: string }` | Atualiza dados                  |
+| DELETE | `/users/:id` | -                                       | Remove um usuário (admin)       |
+
+---
+
+### Deploy na AWS (Infra as Code com Terraform)
+
+> O projeto possui infraestrutura declarada no diretório `/infra`, que automatiza criação de RDS, ECS, ECR e ALB.
+
 ```bash
-# 1. Build e push da imagem
+# Build e push da imagem Docker
 docker build -t projeto-user-api .
 SHA=$(git rev-parse --short HEAD)
 REPO="614077764783.dkr.ecr.eu-north-1.amazonaws.com/projeto-user-api-repo"
 docker tag projeto-user-api:latest $REPO:$SHA
 docker push $REPO:$SHA
 
-# 2. Aplicar infra e atualizar ECS
+# Aplicar infraestrutura
 cd infra
 terraform init
 terraform apply -auto-approve -var "image_tag=$SHA"
-
-# 3. Atualizar secret de conexão (caso altere senha do banco)
-RDS=$(terraform output -raw rds_endpoint)
-aws secretsmanager update-secret   --secret-id projeto-user-api/db_url   --secret-string 'postgresql://appuser:AppUser123!@'"$RDS"':5432/appdb?schema=public'   --region eu-north-1
-
-# 4. Forçar novo deploy do container
-aws ecs update-service   --cluster projeto-user-api-cluster   --service projeto-user-api-svc   --force-new-deployment   --region eu-north-1
 ```
 
 ---
 
-##  Testes após deploy
+### Verificação pós-deploy
+
+> Após o Terraform aplicar a infraestrutura, teste se o serviço está respondendo.
+
 ```bash
 ALB=$(terraform output -raw alb_dns)
 
 # Health check
 curl -i http://$ALB/health
 
-# Lista usuários
-curl -s http://$ALB/users
-
-# Cria novo usuário
-curl -s -X POST http://$ALB/users -H "Content-Type: application/json"   -d '{"name":"Bob","email":"bob@example.com"}'
-
-# Confirma persistência
+# Listagem de usuários
 curl -s http://$ALB/users
 ```
 
-✅ Se `/health` retornar `{"ok":true}` e `/users` listar registros, o deploy está 100%.
+Se `/health` retornar `{"ok":true}` e `/users` listar registros, o deploy está validado.
 
 ---
 
-## Observabilidade
+### Documentação (Swagger)
+
+> Documentação interativa para teste e visualização dos endpoints da API.
+
+Disponível em:
+
+* [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+
+Permite:
+
+* Visualizar todos os endpoints `/users`
+* Testar requisições com JWT
+* Ver modelos `User` e `CreateUserInput`
+
+---
+
+### Autenticação (Auth0)
+
+> O Auth0 é utilizado para emissão e verificação de tokens JWT (grant type `client_credentials`).
+
+**Gerar token (Client Credentials):**
+
+```bash
+curl --request POST \
+  --url https://dev-q4y887wpax47szdd.us.auth0.com/oauth/token \
+  --header 'content-type: application/json' \
+  --data '{
+    "client_id": "<CLIENT_ID>",
+    "client_secret": "<CLIENT_SECRET>",
+    "audience": "https://projeto-user-api",
+    "grant_type": "client_credentials"
+  }'
+```
+
+**Usar o token nos endpoints protegidos:**
+
+```bash
+curl -H "Authorization: Bearer <SEU_TOKEN>" http://localhost:3000/users
+```
+
+---
+
+### Observabilidade e Logs
+
+> Logs e monitoramento da execução dos containers no ECS via CloudWatch.
+
 ```bash
 aws logs tail /ecs/projeto-user-api --since 10m --follow --region eu-north-1
 ```
 
 ---
 
-## CI/CD
-O workflow em `.github/workflows/ci.yml` executa:
-- Lint + Build + Testes a cada push/PR
-- Validação automática do Prisma Client
+### CI/CD
+
+> O pipeline de integração contínua em `.github/workflows/ci.yml` executa:
+
+* Lint + Build + Testes a cada push/PR
+* Validação automática do Prisma Client
+* Integração com o deploy AWS ECS
+
+---
+
+### Equipe
+
+* Integrante 1: [Esthevan Pereira]
+* Integrante 2: [Henrique Knack]
+
+---

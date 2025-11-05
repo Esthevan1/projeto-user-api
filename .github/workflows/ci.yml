@@ -34,4 +34,9 @@ jobs:
       - name: Run tests
         env:
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5433/userdb_test?schema=public
+          NODE_ENV: test
+          JWT_ISSUER: "https://dev-q4y887wpax47szdd.us.auth0.com/"
+          JWT_AUDIENCE: "https://projeto-user-api"
+          JWKS_URI: "https://dev-q4y887wpax47szdd.us.auth0.com/.well-known/jwks.json"
         run: npm test
+

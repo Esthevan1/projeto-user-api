@@ -196,5 +196,7 @@ aws logs tail /ecs/projeto-user-api --since 10m --follow --region eu-north-1
 
 * Integrante 1: [Esthevan Pereira]
 * Integrante 2: [Henrique Knack]
+* Integrante 3: [Isadora Santos da Silva]
+
 
 ---

@@ -31,7 +31,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export function requireRole(requiredRole: "admin" | "user") {
+export function requireRole(requiredRole: "admin" | "user" | "operator") {
   return (req: Request, res: Response, next: NextFunction) => {
     const anyReq = req as any;
 
@@ -66,6 +66,8 @@ export function requireRole(requiredRole: "admin" | "user") {
       permissions.includes("read:users") ||
       scopes.includes("read:users");
 
+    const isOperator = tokenRoles.includes("operator") || permissions.includes("manage:appointments") || scopes.includes("manage:appointments");
+
     if (requiredRole === "admin") {
       if (!isAdmin) {
         return res.status(403).json({ message: "Forbidden: admin only" });
@@ -76,6 +78,13 @@ export function requireRole(requiredRole: "admin" | "user") {
     if (requiredRole === "user") {
       if (!(isUser || isAdmin)) {
         return res.status(403).json({ message: "Forbidden: user only" });
+      }
+      return next();
+    }
+
+    if (requiredRole === "operator") {
+      if (!(isOperator || isAdmin)) {
+        return res.status(403).json({ message: "Forbidden: operator only" });
       }
       return next();
     }

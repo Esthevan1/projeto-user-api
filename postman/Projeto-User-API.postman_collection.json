@@ -1,0 +1,81 @@
+{
+  "info": {
+    "name": "Projeto User API - Flows",
+    "_postman_id": "collection-1",
+    "description": "Coleção com fluxos principais: criar serviço, listar, agendar, conflito, confirmar, cancelar.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Service (admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Corte de Cabelo\",\n  \"description\": \"Corte clássico\",\n  \"durationMin\": 30\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/services", "host": ["{{baseUrl}}"], "path": ["api","v1","services"] }
+      },
+      "response": []
+    },
+    {
+      "name": "List Services",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{baseUrl}}/api/v1/services", "host": ["{{baseUrl}}"], "path": ["api","v1","services"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Appointment (book)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serviceId\": \"{{serviceId}}\",\n  \"startAt\": \"2025-12-01T10:00:00.000Z\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/appointments", "host": ["{{baseUrl}}"], "path": ["api","v1","appointments"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Appointment (conflict)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serviceId\": \"{{serviceId}}\",\n  \"startAt\": \"2025-12-01T10:00:00.000Z\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/appointments", "host": ["{{baseUrl}}"], "path": ["api","v1","appointments"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Confirm Appointment",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{baseUrl}}/api/v1/appointments/{{appointmentId}}/confirm", "host": ["{{baseUrl}}"], "path": ["api","v1","appointments","{{appointmentId}}","confirm"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Cancel Appointment",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{baseUrl}}/api/v1/appointments/{{appointmentId}}/cancel", "host": ["{{baseUrl}}"], "path": ["api","v1","appointments","{{appointmentId}}","cancel"] }
+      },
+      "response": []
+    }
+  ],
+  "event": [],
+  "variable": []
+}

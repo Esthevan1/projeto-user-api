@@ -200,3 +200,30 @@ aws logs tail /ecs/projeto-user-api --since 10m --follow --region eu-north-1
 
 
 ---
+
+### Postman / Newman (Smoke)
+
+Há uma coleção Postman em `postman/Projeto-User-API.postman_collection.json` e um ambiente em `postman/Projeto-User-API.postman_environment.json`.
+
+Scripts disponíveis:
+
+- `npm run smoke` — executa `newman` via `npx` (sem gerar relatórios).
+- `npm run smoke:report` — executa um runner Node que chama `npx newman` e produz relatórios em `./reports` (`newman-report.html` e `newman-report.xml`).
+- `npm run token:gen [role] [sub]` — gera um token JWT de teste (`role` = `admin`|`user`, `sub` opcional). Exemplo: `npm run token:gen admin test-user`.
+
+Exemplo (PowerShell) para rodar a coleção localmente com token gerado automaticamente:
+
+```powershell
+# Gera token de admin e salva na variável TOKEN
+ $TOKEN = npm run --silent token:gen admin | Out-String
+
+# Executa a coleção e gera relatórios
+ npm run smoke:report -- --env-var "token=$TOKEN"
+```
+
+Observações:
+
+- A coleção possui scripts que salvam `serviceId` e `appointmentId` no ambiente para uso entre requisições.
+- Garanta que a API esteja rodando (`npm run dev` ou via Docker) antes de executar o smoke.
+- No CI, passe o token como variável segura e execute `npm run smoke:report -- --env-var "token=$TOKEN"`.
+

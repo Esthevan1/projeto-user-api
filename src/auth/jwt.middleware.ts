@@ -25,7 +25,10 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   try {
     const decoded = jwt.verify(token, SECRET) as any;
     req.user = decoded;
-    next();
+    // validate standard claims when running tests too
+    const { validateJwtClaims } = require("./claims.middleware");
+    // claims middleware expects (req,res,next)
+    return validateJwtClaims(req, res, next);
   } catch (error) {
     return res.status(401).json({ message: "Invalid Token" });
   }

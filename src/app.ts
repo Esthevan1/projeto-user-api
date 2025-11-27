@@ -18,6 +18,11 @@ app.use("/api/v1/users", usersRouter);
 app.use("/api/v1/services", servicesRouter);
 app.use("/api/v1/appointments", appointmentsRouter);
 
+// Compatibility mounts (legacy paths used in tests / older clients)
+app.use("/users", usersRouter);
+app.use("/services", servicesRouter);
+app.use("/appointments", appointmentsRouter);
+
 app.get("/", (_, res) => {
   res.send("API do Projeto User - OK");
 });

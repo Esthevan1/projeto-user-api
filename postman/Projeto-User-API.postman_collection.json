@@ -20,7 +20,20 @@
         },
         "url": { "raw": "{{baseUrl}}/api/v1/services", "host": ["{{baseUrl}}"], "path": ["api","v1","services"] }
       },
-      "response": []
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create Service - status is 201', function () { pm.response.to.have.status(201); });",
+              "var json = pm.response.json();",
+              "if (json && json.id) { pm.environment.set('serviceId', json.id); pm.test('Saved serviceId', function () { pm.expect(pm.environment.get('serviceId')).to.be.a('string'); }); }"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "List Services",
@@ -42,7 +55,20 @@
         },
         "url": { "raw": "{{baseUrl}}/api/v1/appointments", "host": ["{{baseUrl}}"], "path": ["api","v1","appointments"] }
       },
-      "response": []
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create Appointment - status is 201', function () { pm.response.to.have.status(201); });",
+              "var json = pm.response.json();",
+              "if (json && json.id) { pm.environment.set('appointmentId', json.id); pm.test('Saved appointmentId', function () { pm.expect(pm.environment.get('appointmentId')).to.be.a('string'); }); }"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "Create Appointment (conflict)",
@@ -55,7 +81,18 @@
         },
         "url": { "raw": "{{baseUrl}}/api/v1/appointments", "host": ["{{baseUrl}}"], "path": ["api","v1","appointments"] }
       },
-      "response": []
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create Appointment Conflict - expect 409', function () { pm.response.to.have.status(409); });"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "Confirm Appointment",

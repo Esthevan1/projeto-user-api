@@ -28,28 +28,50 @@ usersRouter.get("/", authMiddleware, requireRole("admin"), listUsers);
 usersRouter.delete("/:id", authMiddleware, requireRole("admin"), deleteUser);
 
 // Usuário comum pode acessar o próprio perfil
-usersRouter.get("/:id", authMiddleware, (req, res, next) => {
-  const userId = req.params.id;
-  const auth = (req as any).auth || (req as any).user;
+usersRouter.get(
+  "/:id",
+  authMiddleware,
+  (req, res, next) => {
+    const userId = req.params.id;
+    const anyReq = req as any;
+    const auth = anyReq.auth?.payload || anyReq.auth || anyReq.user;
 
-  if (auth?.sub === userId || auth?.roles?.includes("admin")) {
-    return next();
-  }
+    const roles: string[] =
+      auth?.roles ||
+      auth?.["https://projeto-user-api/roles"] ||
+      [];
 
-  return res.status(403).json({ message: "Forbidden: not owner" });
-}, getUser);
+    if (auth?.sub === userId || roles.includes("admin")) {
+      return next();
+    }
+
+    return res.status(403).json({ message: "Forbidden: not owner" });
+  },
+  getUser
+);
 
 // Usuário comum pode atualizar apenas o próprio perfil
-usersRouter.put("/:id", authMiddleware, (req, res, next) => {
-  const userId = req.params.id;
-  const auth = (req as any).auth || (req as any).user;
+usersRouter.put(
+  "/:id",
+  authMiddleware,
+  (req, res, next) => {
+    const userId = req.params.id;
+    const anyReq = req as any;
+    const auth = anyReq.auth?.payload || anyReq.auth || anyReq.user;
 
-  if (auth?.sub === userId || auth?.roles?.includes("admin")) {
-    return next();
-  }
+    const roles: string[] =
+      auth?.roles ||
+      auth?.["https://projeto-user-api/roles"] ||
+      [];
 
-  return res.status(403).json({ message: "Forbidden: not owner" });
-}, updateUser);
+    if (auth?.sub === userId || roles.includes("admin")) {
+      return next();
+    }
+
+    return res.status(403).json({ message: "Forbidden: not owner" });
+  },
+  updateUser
+);
 
 // Criação de usuário apenas para admin
 usersRouter.post("/", authMiddleware, requireRole("admin"), createUser);
@@ -63,7 +85,7 @@ usersRouter.post("/", authMiddleware, requireRole("admin"), createUser);
 
 /**
  * @swagger
- * /users:
+ * /api/v1/users:
  *   get:
  *     summary: Lista todos os usuários
  *     tags: [Users]
@@ -78,13 +100,13 @@ usersRouter.post("/", authMiddleware, requireRole("admin"), createUser);
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/User'
- */
-
-/**
- * @swagger
- * /users:
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *
  *   post:
- *     summary: Cria um novo usuário
+ *     summary: Cria um novo usuário (admin)
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -101,11 +123,17 @@ usersRouter.post("/", authMiddleware, requireRole("admin"), createUser);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  */
 
 /**
  * @swagger
- * /users/{id}:
+ * /api/v1/users/{id}:
  *   get:
  *     summary: Obtém um usuário pelo ID
  *     tags: [Users]
@@ -125,13 +153,13 @@ usersRouter.post("/", authMiddleware, requireRole("admin"), createUser);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
- *         description: Usuário não encontrado
- */
-
-/**
- * @swagger
- * /users/{id}:
+ *         $ref: '#/components/responses/NotFound'
+ *
  *   put:
  *     summary: Atualiza um usuário existente
  *     tags: [Users]
@@ -157,13 +185,15 @@ usersRouter.post("/", authMiddleware, requireRole("admin"), createUser);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
- *         description: Usuário não encontrado
- */
-
-/**
- * @swagger
- * /users/{id}:
+ *         $ref: '#/components/responses/NotFound'
+ *
  *   delete:
  *     summary: Remove um usuário pelo ID
  *     tags: [Users]
@@ -179,6 +209,11 @@ usersRouter.post("/", authMiddleware, requireRole("admin"), createUser);
  *     responses:
  *       204:
  *         description: Usuário removido com sucesso
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
- *         description: Usuário não encontrado
+ *         $ref: '#/components/responses/NotFound'
  */
+

@@ -244,7 +244,7 @@
   "paths": {
     "/api/v1/appointments": {
       "get": {
-        "summary": "Lista agendamentos (admin/operator vê todos)",
+        "summary": "Lista agendamentos (admin/operator vê todos; user vê apenas os seus)",
         "tags": [
           "Appointments"
         ],
@@ -268,7 +268,20 @@
             "schema": {
               "type": "integer"
             },
-            "description": "Tamanho da página"
+            "description": "Tamanho da página (padrão 20, máximo 100)"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "booked",
+                "confirmed",
+                "canceled"
+              ]
+            },
+            "description": "Filtra por status do agendamento"
           }
         ],
         "responses": {
@@ -286,12 +299,12 @@
             }
           },
           "401": {
-            "$ref": "#/components/schemas/ErrorResponse"
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       },
       "post": {
-        "summary": "Agendar um serviço (usuário autenticado)",
+        "summary": "Cria um novo agendamento (usuário autenticado)",
         "tags": [
           "Appointments"
         ],
@@ -346,25 +359,13 @@
             }
           },
           "400": {
-            "$ref": "#/components/schemas/ErrorResponse"
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           },
           "409": {
-            "description": "Conflito de horário",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "examples": {
-                  "conflict": {
-                    "summary": "Time slot not available",
-                    "value": {
-                      "message": "Time slot not available"
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/Conflict"
           }
         }
       }
@@ -401,8 +402,14 @@
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
-            "$ref": "#/components/schemas/ErrorResponse"
+            "$ref": "#/components/responses/NotFound"
           }
         }
       }
@@ -439,15 +446,21 @@
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
-            "$ref": "#/components/schemas/ErrorResponse"
+            "$ref": "#/components/responses/NotFound"
           }
         }
       }
     },
     "/api/v1/appointments/{id}/cancel": {
       "post": {
-        "summary": "Cancela um agendamento (owner/operator/admin)",
+        "summary": "Cancela um agendamento (owner ou operator/admin)",
         "tags": [
           "Appointments"
         ],
@@ -477,15 +490,21 @@
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
           "403": {
-            "$ref": "#/components/schemas/ErrorResponse"
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           }
         }
       }
     },
     "/api/v1/services": {
       "get": {
-        "summary": "Lista serviços (paginado)",
+        "summary": "Lista serviços com paginação",
         "tags": [
           "Services"
         ],
@@ -509,7 +528,7 @@
             "schema": {
               "type": "integer"
             },
-            "description": "Tamanho da página"
+            "description": "Tamanho da página (padrão 20, máximo 100)"
           }
         ],
         "responses": {
@@ -550,7 +569,7 @@
             }
           },
           "401": {
-            "$ref": "#/components/schemas/ErrorResponse"
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       },
@@ -591,25 +610,18 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Service"
-                },
-                "examples": {
-                  "created": {
-                    "summary": "Serviço criado com sucesso",
-                    "value": {
-                      "id": "9fb4a812-3191-4d7a-8dff-92e0eff521f7",
-                      "name": "Corte de Cabelo",
-                      "description": "Corte clássico masculino",
-                      "durationMin": 30,
-                      "createdAt": "2025-11-27T18:00:00.000Z",
-                      "updatedAt": "2025-11-27T18:00:00.000Z"
-                    }
-                  }
                 }
               }
             }
           },
           "400": {
-            "$ref": "#/components/schemas/ErrorResponse"
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         }
       }
@@ -646,8 +658,11 @@
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
           "404": {
-            "$ref": "#/components/schemas/ErrorResponse"
+            "$ref": "#/components/responses/NotFound"
           }
         }
       },
@@ -692,8 +707,17 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
-            "$ref": "#/components/schemas/ErrorResponse"
+            "$ref": "#/components/responses/NotFound"
           }
         }
       },
@@ -721,13 +745,19 @@
           "204": {
             "description": "Serviço removido"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
-            "$ref": "#/components/schemas/ErrorResponse"
+            "$ref": "#/components/responses/NotFound"
           }
         }
       }
     },
-    "/users": {
+    "/api/v1/users": {
       "get": {
         "summary": "Lista todos os usuários",
         "tags": [
@@ -751,11 +781,17 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         }
       },
       "post": {
-        "summary": "Cria um novo usuário",
+        "summary": "Cria um novo usuário (admin)",
         "tags": [
           "Users"
         ],
@@ -784,11 +820,20 @@
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         }
       }
     },
-    "/users/{id}": {
+    "/api/v1/users/{id}": {
       "get": {
         "summary": "Obtém um usuário pelo ID",
         "tags": [
@@ -821,8 +866,14 @@
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
-            "description": "Usuário não encontrado"
+            "$ref": "#/components/responses/NotFound"
           }
         }
       },
@@ -868,8 +919,17 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
-            "description": "Usuário não encontrado"
+            "$ref": "#/components/responses/NotFound"
           }
         }
       },
@@ -898,8 +958,14 @@
           "204": {
             "description": "Usuário removido com sucesso"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
-            "description": "Usuário não encontrado"
+            "$ref": "#/components/responses/NotFound"
           }
         }
       }

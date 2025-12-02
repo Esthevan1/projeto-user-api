@@ -15,11 +15,11 @@ const authMiddleware = isTest ? requireAuth : requireAuth0;
 
 export const servicesRouter = Router();
 
-// list: available to any authenticated user
+// list: disponível para qualquer usuário autenticado
 servicesRouter.get("/", authMiddleware, listServices);
 servicesRouter.get("/:id", authMiddleware, getService);
 
-// admin only: manage services
+// admin only: gerencia serviços
 servicesRouter.post("/", authMiddleware, requireRole("admin"), createService);
 servicesRouter.put("/:id", authMiddleware, requireRole("admin"), updateService);
 servicesRouter.delete("/:id", authMiddleware, requireRole("admin"), deleteService);
@@ -49,7 +49,7 @@ servicesRouter.delete("/:id", authMiddleware, requireRole("admin"), deleteServic
  *         name: pageSize
  *         schema:
  *           type: integer
- *         description: Tamanho da página
+ *         description: Tamanho da página (padrão 20, máximo 100)
  *     responses:
  *       200:
  *         description: Lista de serviços
@@ -76,7 +76,7 @@ servicesRouter.delete("/:id", authMiddleware, requireRole("admin"), deleteServic
  *                     createdAt: "2025-11-20T10:00:00.000Z"
  *                     updatedAt: "2025-11-20T10:00:00.000Z"
  *       401:
- *         $ref: '#/components/schemas/ErrorResponse'
+ *         $ref: '#/components/responses/Unauthorized'
  *
  *   post:
  *     summary: Cria um novo serviço (admin)
@@ -103,18 +103,12 @@ servicesRouter.delete("/:id", authMiddleware, requireRole("admin"), deleteServic
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Service'
- *             examples:
- *               created:
- *                 summary: Serviço criado com sucesso
- *                 value:
- *                   id: "9fb4a812-3191-4d7a-8dff-92e0eff521f7"
- *                   name: "Corte de Cabelo"
- *                   description: "Corte clássico masculino"
- *                   durationMin: 30
- *                   createdAt: "2025-11-27T18:00:00.000Z"
- *                   updatedAt: "2025-11-27T18:00:00.000Z"
  *       400:
- *         $ref: '#/components/schemas/ErrorResponse'
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  */
 
 /**
@@ -138,8 +132,10 @@ servicesRouter.delete("/:id", authMiddleware, requireRole("admin"), deleteServic
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Service'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         $ref: '#/components/schemas/ErrorResponse'
+ *         $ref: '#/components/responses/NotFound'
  *
  *   put:
  *     summary: Atualiza um serviço (admin)
@@ -165,8 +161,14 @@ servicesRouter.delete("/:id", authMiddleware, requireRole("admin"), deleteServic
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Service'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
- *         $ref: '#/components/schemas/ErrorResponse'
+ *         $ref: '#/components/responses/NotFound'
  *
  *   delete:
  *     summary: Remove um serviço (admin)
@@ -182,59 +184,12 @@ servicesRouter.delete("/:id", authMiddleware, requireRole("admin"), deleteServic
  *     responses:
  *       204:
  *         description: Serviço removido
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
- *         $ref: '#/components/schemas/ErrorResponse'
- */
-
-/**
- * @swagger
- * /api/v1/services:
- *   get:
- *     summary: Lista serviços (paginado)
- *     tags: [Services]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *       - in: query
- *         name: pageSize
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Lista de serviços
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Service'
- */
-
-/**
- * @swagger
- * /api/v1/services:
- *   post:
- *     summary: Cria um novo serviço (admin)
- *     tags: [Services]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/CreateServiceInput'
- *     responses:
- *       201:
- *         description: Serviço criado
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Service'
+ *         $ref: '#/components/responses/NotFound'
  */
 
 export default servicesRouter;

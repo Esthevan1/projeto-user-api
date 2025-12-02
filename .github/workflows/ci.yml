@@ -2,11 +2,13 @@ name: CI
 
 on:
   push:
+    branches: [ "main" ]
   pull_request:
 
 jobs:
-  test:
+  build_test:
     runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:16
@@ -15,12 +17,12 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: userdb_test
         ports:
-          - 5432:5432
+          - "5433:5432"
         options: >-
-          --health-cmd "pg_isready -U postgres -d userdb_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd="pg_isready -U postgres -d userdb_test"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
 
     steps:
       - name: Checkout
@@ -29,93 +31,22 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Configure DATABASE_URL
-        run: |
-          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/userdb_test?schema=public" >> $GITHUB_ENV
-          echo "TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/userdb_test?schema=public" >> $GITHUB_ENV
-
       - name: Generate Prisma client
         run: npx prisma generate
 
-      - name: Push Prisma schema
-        run: npx prisma db push
-
-      - name: Run unit & integration tests
-        run: npm test
-
-      - name: Build
-        run: npm run build
-
-      - name: Export OpenAPI
-        run: npm run openapi:export
-
-      - name: Start server
-        run: nohup node dist/server.js > server.log 2>&1 &
-
-      - name: Wait for server
-        run: |
-          for i in {1..30}; do
-            if curl -sSf http://localhost:3000/ >/dev/null; then echo "server up"; break; fi
-            sleep 1
-          done
-
-      - name: Run Newman smoke tests
-        env:
-          TOKEN: ${{ secrets.SMOKE_TOKEN }}
-        run: |
-          if [ -z "${TOKEN}" ]; then echo "SKIPPING newman: SMOKE_TOKEN not set"; exit 0; fi
-          npm run smoke:report -- --env-var "token=${TOKEN}"
-
-      - name: Upload Newman reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: newman-reports
-          path: reports/**
-name: CI
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-
-jobs:
-  build_test:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: userdb_test
-        ports: [ "5433:5432" ]
-        options: >-
-          --health-cmd="pg_isready -U postgres -d userdb_test"
-          --health-interval=5s --health-timeout=3s --health-retries=10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "npm"
-      - run: npm ci
-      - run: npx prisma generate
       - name: Prepare DB schema
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5433/userdb_test?schema=public
         run: npx prisma db push
+
       - name: Run tests
         env:
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5433/userdb_test?schema=public
           NODE_ENV: test
-          JWT_ISSUER: "https://dev-q4y887wpax47szdd.us.auth0.com/"
-          JWT_AUDIENCE: "https://projeto-user-api"
-          JWKS_URI: "https://dev-q4y887wpax47szdd.us.auth0.com/.well-known/jwks.json"
         run: npm test
-

@@ -19,14 +19,23 @@ export const appointmentsRouter = Router();
 appointmentsRouter.get("/", authMiddleware, listAppointments);
 appointmentsRouter.get("/:id", authMiddleware, getAppointment);
 
-// create: any authenticated user
+// create: qualquer usuário autenticado
 appointmentsRouter.post("/", authMiddleware, createAppointment);
 
-// confirm: operator or admin
-appointmentsRouter.post("/:id/confirm", authMiddleware, requireRole("operator"), confirmAppointment);
+// confirm: operator ou admin (requireRole já permite admin)
+appointmentsRouter.post(
+  "/:id/confirm",
+  authMiddleware,
+  requireRole("operator"),
+  confirmAppointment
+);
 
-// cancel: owner or operator/admin
-appointmentsRouter.post("/:id/cancel", authMiddleware, cancelAppointment);
+// cancel: owner ou operator/admin (checado no controller)
+appointmentsRouter.post(
+  "/:id/cancel",
+  authMiddleware,
+  cancelAppointment
+);
 
 /**
  * @swagger
@@ -39,7 +48,7 @@ appointmentsRouter.post("/:id/cancel", authMiddleware, cancelAppointment);
  * @swagger
  * /api/v1/appointments:
  *   get:
- *     summary: Lista agendamentos (admin/operator vê todos)
+ *     summary: Lista agendamentos (admin/operator vê todos; user vê apenas os seus)
  *     tags: [Appointments]
  *     security:
  *       - bearerAuth: []
@@ -53,7 +62,13 @@ appointmentsRouter.post("/:id/cancel", authMiddleware, cancelAppointment);
  *         name: pageSize
  *         schema:
  *           type: integer
- *         description: Tamanho da página
+ *         description: Tamanho da página (padrão 20, máximo 100)
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [booked, confirmed, canceled]
+ *         description: Filtra por status do agendamento
  *     responses:
  *       200:
  *         description: Lista de agendamentos
@@ -64,7 +79,7 @@ appointmentsRouter.post("/:id/cancel", authMiddleware, cancelAppointment);
  *               items:
  *                 $ref: '#/components/schemas/Appointment'
  *       401:
- *         $ref: '#/components/schemas/ErrorResponse'
+ *         $ref: '#/components/responses/Unauthorized'
  *
  *   post:
  *     summary: Cria um novo agendamento (usuário autenticado)
@@ -103,19 +118,15 @@ appointmentsRouter.post("/:id/cancel", authMiddleware, cancelAppointment);
  *                   createdAt: "2025-11-27T18:30:00.000Z"
  *                   updatedAt: "2025-11-27T18:30:00.000Z"
  *       400:
- *         $ref: '#/components/schemas/ErrorResponse'
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *       409:
- *         description: Conflito de horário
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *             examples:
- *               conflict:
- *                 summary: Time slot not available
- *                 value:
- *                   message: "Time slot not available"
- *
+ *         $ref: '#/components/responses/Conflict'
+ */
+
+/**
+ * @swagger
  * /api/v1/appointments/{id}:
  *   get:
  *     summary: Consulta um agendamento por id
@@ -135,9 +146,16 @@ appointmentsRouter.post("/:id/cancel", authMiddleware, cancelAppointment);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Appointment'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
- *         $ref: '#/components/schemas/ErrorResponse'
- *
+ *         $ref: '#/components/responses/NotFound'
+ */
+
+/**
+ * @swagger
  * /api/v1/appointments/{id}/confirm:
  *   post:
  *     summary: Confirma um agendamento (operator/admin)
@@ -157,9 +175,16 @@ appointmentsRouter.post("/:id/cancel", authMiddleware, cancelAppointment);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Appointment'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
- *         $ref: '#/components/schemas/ErrorResponse'
- *
+ *         $ref: '#/components/responses/NotFound'
+ */
+
+/**
+ * @swagger
  * /api/v1/appointments/{id}/cancel:
  *   post:
  *     summary: Cancela um agendamento (owner ou operator/admin)
@@ -179,69 +204,12 @@ appointmentsRouter.post("/:id/cancel", authMiddleware, cancelAppointment);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Appointment'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *       403:
- *         $ref: '#/components/schemas/ErrorResponse'
- */
-
-/**
- * @swagger
- * /api/v1/appointments:
- *   post:
- *     summary: Agendar um serviço (usuário autenticado)
- *     tags: [Appointments]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/CreateAppointmentInput'
- *     responses:
- *       201:
- *         description: Agendamento criado
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Appointment'
- */
-
-/**
- * @swagger
- * /api/v1/appointments/{id}/confirm:
- *   post:
- *     summary: Confirma um agendamento (operator/admin)
- *     tags: [Appointments]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Agendamento confirmado
- */
-
-/**
- * @swagger
- * /api/v1/appointments/{id}/cancel:
- *   post:
- *     summary: Cancela um agendamento (owner/operator/admin)
- *     tags: [Appointments]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Agendamento cancelado
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
  */
 
 export default appointmentsRouter;

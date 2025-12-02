@@ -6,70 +6,56 @@ const SECRET = "SUPER_SECRET_LOCAL_KEY";
 declare global {
   namespace Express {
     interface Request {
-      // só adicionamos user; auth já é declarado pelo express-oauth2-jwt-bearer
+      // usado apenas nos testes (ambiente local)
       user?: any;
     }
   }
 }
 
-// usado nos testes (mock local) – em produção você usa o requireAuth0
+// Middleware simples de autenticação para AMBIENTE DE TESTES.
+// Em produção, usamos o requireAuth0 (express-oauth2-jwt-bearer).
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const auth = req.headers.authorization;
+  const authHeader = (req.headers.authorization ||
+    (req.headers as any).Authorization) as string | undefined;
 
-  if (!auth?.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Missing Bearer token" });
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
-  const token = auth.slice(7);
+  const token = authHeader.substring("Bearer ".length).trim();
 
   try {
-    const decoded = jwt.verify(token, SECRET) as any;
-    req.user = decoded;
-    // validate standard claims when running tests too
-    const { validateJwtClaims } = require("./claims.middleware");
-    // claims middleware expects (req,res,next)
-    return validateJwtClaims(req, res, next);
-  } catch (error) {
-    return res.status(401).json({ message: "Invalid Token" });
+    const decoded = jwt.verify(token, SECRET);
+    // nos testes vamos ler esses dados via req.user
+    (req as any).user = decoded;
+    return next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
   }
 }
 
+// Middleware de RBAC simples baseado em roles no token.
+// Mantém compatibilidade com Auth0 (req.auth) e com o mock local (req.user).
 export function requireRole(requiredRole: "admin" | "user" | "operator") {
   return (req: Request, res: Response, next: NextFunction) => {
     const anyReq = req as any;
-
-    // em produção vem de express-oauth2-jwt-bearer (req.auth)
-    // em testes vem de requireAuth (req.user)
     const auth = anyReq.auth || anyReq.user;
 
     if (!auth) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // Se veio do express-oauth2-jwt-bearer, os claims estão em auth.payload
+    // se vier do Auth0, payload fica em auth.payload
     const claims = auth.payload ?? auth;
 
-    const tokenRoles: string[] =
+    const roles: string[] =
       claims.roles ||
       claims["https://projeto-user-api/roles"] ||
       [];
 
-    const permissions: string[] = claims.permissions || [];
-
-    const scopeStr: string | undefined = claims.scope;
-    const scopes: string[] = scopeStr ? scopeStr.split(" ") : [];
-
-    const isAdmin =
-      tokenRoles.includes("admin") ||
-      permissions.includes("write:users") ||
-      scopes.includes("write:users");
-
-    const isUser =
-      tokenRoles.includes("user") ||
-      permissions.includes("read:users") ||
-      scopes.includes("read:users");
-
-    const isOperator = tokenRoles.includes("operator") || permissions.includes("manage:appointments") || scopes.includes("manage:appointments");
+    const isAdmin = roles.includes("admin");
+    const isOperator = roles.includes("operator");
+    const isUser = roles.includes("user");
 
     if (requiredRole === "admin") {
       if (!isAdmin) {

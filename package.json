@@ -10,7 +10,9 @@
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
-    "test": "cross-env NODE_ENV=test jest --runInBand"
+    "test": "cross-env NODE_ENV=test jest --runInBand",
+    "openapi:export": "node scripts/export-openapi.js",
+    "smoke:report": "node scripts/run-newman.js"
   },
   "dependencies": {
     "@prisma/client": "^5.16.2",
